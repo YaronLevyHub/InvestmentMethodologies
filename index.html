@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yaron's Trading Playbook</title>
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2333;
+    --bg-card: #1a2030;
+    --border: #30363d;
+    --border-light: #21262d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent-gold: #d4a03c;
+    --accent-gold-dim: #b8892e;
+    --accent-green: #3fb950;
+    --accent-red: #f85149;
+    --accent-blue: #58a6ff;
+    --sidebar-width: 270px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--sidebar-width); height: 100vh;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto; z-index: 100;
+    transition: transform 0.25s ease, width 0.25s ease;
+    display: flex; flex-direction: column;
+  }
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-header {
+    padding: 20px 16px 14px; border-bottom: 1px solid var(--border);
+    flex-shrink: 0; transition: opacity 0.2s;
+  }
+  .sidebar-header h1 { font-size: 16px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; }
+  .sidebar-header .subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .sidebar-toggle-desktop {
+    width: 32px; height: 32px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: 6px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 18px;
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .sidebar-toggle-desktop:hover { color: var(--accent-gold); border-color: var(--accent-gold-dim); background: var(--bg-secondary); }
+
+  .sidebar-nav { padding: 8px 0; flex: 1; overflow-y: auto; transition: opacity 0.2s; }
+  .nav-section { padding: 0 8px; margin-bottom: 4px; }
+  .nav-section-title {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 1.2px; padding: 10px 8px 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; color: var(--text-secondary);
+    transition: all 0.15s; text-decoration: none; user-select: none;
+  }
+  .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .nav-item.active { background: rgba(212,160,60,0.12); color: var(--accent-gold); font-weight: 500; }
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+  .nav-status { margin-left: auto; font-size: 9px; padding: 1px 5px; border-radius: 10px; font-weight: 600; }
+  .status-live { background: rgba(63,185,80,0.15); color: var(--accent-green); }
+  .status-soon { background: rgba(139,148,158,0.12); color: var(--text-muted); }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar-width); min-height: 100vh; transition: margin-left 0.25s ease; }
+  .sidebar.collapsed ~ .main { margin-left: 0; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13,17,23,0.88); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 28px 10px 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .topbar-title { font-size: 13px; color: var(--text-secondary); flex: 1; }
+  .topbar-title span { color: var(--text-muted); margin: 0 5px; }
+  .topbar-title strong { color: var(--text-primary); font-weight: 600; }
+  .search-box {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; width: 220px;
+  }
+  .search-box input { background: none; border: none; outline: none; color: var(--text-primary); font-size: 12px; width: 100%; }
+  .search-box input::placeholder { color: var(--text-muted); }
+
+  .content { max-width: 880px; margin: 0 auto; padding: 32px 28px 60px; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .page-header .page-meta { font-size: 12px; color: var(--text-muted); }
+  .page-header .page-meta .version { color: var(--accent-gold); font-weight: 600; }
+  .page-header .page-description { margin-top: 10px; font-size: 14px; color: var(--text-secondary); line-height: 1.7; max-width: 700px; }
+  .influences { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .influence-tag { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-secondary); }
+
+  /* SECTIONS */
+  .section { margin-bottom: 28px; }
+  .section h2 { font-size: 20px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-light); }
+  .section h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 14px 0 6px; }
+  .section p { color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-bottom: 6px; }
+
+  /* PRINCIPLES */
+  .expand-collapse-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .expand-collapse-bar h2 { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; }
+  .ec-links a {
+    font-size: 11px; color: var(--text-muted); cursor: pointer; text-decoration: none;
+    padding: 3px 8px; border-radius: 4px; transition: all 0.15s; margin-left: 2px;
+  }
+  .ec-links a:hover { color: var(--accent-gold); background: rgba(212,160,60,0.08); }
+
+  .principles-grid { display: grid; grid-template-columns: 1fr; gap: 5px; }
+  .principle {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 12px; background: var(--bg-card);
+    border: 1px solid var(--border-light); border-radius: 7px;
+    border-left: 3px solid var(--accent-gold); cursor: pointer;
+  }
+  .principle:hover { border-left-color: var(--accent-gold); background: rgba(26,32,48,0.8); }
+  .principle-num {
+    font-size: 11px; font-weight: 700; color: var(--accent-gold);
+    background: rgba(212,160,60,0.1); padding: 1px 7px; border-radius: 4px;
+    flex-shrink: 0; min-width: 22px; text-align: center; margin-top: 1px;
+  }
+  .principle-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
+  .principle-text strong { color: var(--text-primary); }
+  .expand-icon {
+    font-size: 18px; color: var(--text-muted); transition: transform 0.2s ease;
+    flex-shrink: 0; margin-left: 6px; line-height: 1;
+  }
+  .principle.expanded .expand-icon { transform: rotate(180deg); }
+  .principle-detail {
+    display: none; margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid var(--border-light);
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.65;
+  }
+  .principle.expanded .principle-detail { display: block; }
+
+  /* PHASE CARDS */
+  .phase-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; margin: 14px 0; overflow: hidden; }
+  .phase-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 18px; background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+  }
+  .phase-header:hover { background: rgba(28,35,51,0.8); }
+  .phase-number { font-size: 12px; font-weight: 700; color: var(--bg-primary); background: var(--accent-gold); padding: 3px 9px; border-radius: 5px; flex-shrink: 0; }
+  .phase-title { font-size: 15px; font-weight: 600; color: var(--text-primary); flex: 1; }
+  .phase-toggle { font-size: 18px; color: var(--text-muted); transition: transform 0.2s; }
+  .phase-card.open .phase-toggle { transform: rotate(180deg); }
+  .phase-body { padding: 0 18px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; }
+  .phase-card.open .phase-body { padding: 16px 18px; max-height: 3000px; }
+
+  .phase-rule { display: grid; grid-template-columns: 110px 1fr; gap: 2px 14px; margin-bottom: 8px; font-size: 13.5px; }
+  .phase-rule-label { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 2px; }
+  .phase-rule-value { color: var(--text-secondary); line-height: 1.6; }
+  .phase-rule-value strong { color: var(--text-primary); }
+
+  .phase-note {
+    margin-top: 10px; padding: 10px 12px;
+    background: rgba(212,160,60,0.05); border-left: 3px solid var(--accent-gold-dim);
+    border-radius: 0 5px 5px 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;
+  }
+  .phase-note strong { color: var(--accent-gold); }
+
+  .phase-formula {
+    margin: 10px 0; padding: 10px 14px;
+    background: var(--bg-primary); border: 1px solid var(--border); border-radius: 5px;
+    font-family: 'SF Mono','Fira Code',monospace; font-size: 12.5px;
+    color: var(--accent-blue); white-space: pre-wrap; line-height: 1.7;
+  }
+
+  .phase-bullets { margin: 6px 0 6px 0; padding-left: 124px; }
+  .phase-bullets li { color: var(--text-secondary); font-size: 13.5px; line-height: 1.6; margin-bottom: 4px; list-style: none; padding-left: 14px; position: relative; }
+  .phase-bullets li::before { content: "›"; position: absolute; left: 0; color: var(--accent-gold); font-weight: 700; }
+  .phase-bullets li strong { color: var(--text-primary); }
+
+  /* CALLOUTS */
+  .callout { padding: 10px 14px; border-radius: 6px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+  .callout-warning { background: rgba(248,81,73,0.07); border: 1px solid rgba(248,81,73,0.18); color: var(--accent-red); }
+  .callout-info { background: rgba(88,166,255,0.07); border: 1px solid rgba(88,166,255,0.18); color: var(--accent-blue); }
+  .callout-success { background: rgba(63,185,80,0.07); border: 1px solid rgba(63,185,80,0.18); color: var(--accent-green); }
+
+  /* TABLES */
+  .table-wrapper { overflow-x: auto; margin: 12px 0; border-radius: 7px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--bg-tertiary); }
+  th { padding: 8px 12px; text-align: left; font-weight: 600; color: var(--accent-gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); color: var(--text-secondary); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td strong { color: var(--text-primary); }
+
+  /* CALCULATOR */
+  .calc-input { width: 100%; padding: 7px 10px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 5px; color: var(--text-primary); font-size: 13px; }
+  .calc-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 3px; }
+  .portion-btn {
+    flex: 1; padding: 8px 6px; background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-secondary); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .portion-btn:hover { border-color: var(--accent-gold-dim); color: var(--text-primary); }
+  .portion-btn.active { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(212,160,60,0.08); }
+
+  /* HOME */
+  .home-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 12px; margin: 16px 0; }
+  .home-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px;
+    padding: 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .home-card:hover { border-color: var(--accent-gold-dim); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .home-card-icon { font-size: 24px; margin-bottom: 8px; }
+  .home-card h3 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .home-card p { font-size: 12px; color: var(--text-muted); line-height: 1.45; }
+  .home-card .card-status { margin-top: 10px; font-size: 10px; font-weight: 600; }
+  .card-status.live { color: var(--accent-green); }
+  .card-status.coming { color: var(--text-muted); }
+
+  /* PLACEHOLDER */
+  .placeholder { text-align: center; padding: 60px 20px; }
+  .placeholder-icon { font-size: 42px; margin-bottom: 16px; opacity: 0.35; }
+  .placeholder h2 { color: var(--text-primary); font-size: 22px; margin-bottom: 6px; border: none; padding: 0; }
+  .placeholder p { color: var(--text-muted); font-size: 14px; }
+
+  /* VISUAL FLOWCHART */
+  .vflow { padding: 10px 0; }
+  .vflow-step { position: relative; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 0; }
+  .vflow-line { position: absolute; left: 19px; top: 38px; bottom: -2px; width: 2px; background: var(--border); }
+  .vflow-step:last-child .vflow-line { display: none; }
+  .vflow-dot {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--bg-primary); z-index: 1;
+  }
+  .vflow-dot.phase { background: var(--accent-gold); }
+  .vflow-dot.question { background: var(--accent-blue); font-size: 16px; }
+  .vflow-dot.sell { background: var(--accent-red); font-size: 14px; }
+  .vflow-dot.annex { background: var(--accent-blue); font-size: 11px; }
+  .vflow-content { flex: 1; padding: 6px 0 24px; }
+  .vflow-title { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.4; }
+  .vflow-desc { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
+  .vflow-branch {
+    margin: 8px 0 0 0; padding: 8px 12px; border-radius: 6px;
+    border: 1px dashed var(--border); background: rgba(13,17,23,0.5);
+    font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+  }
+  .vflow-branch strong { color: var(--text-primary); }
+  .vflow-branch .sell-tag { color: var(--accent-red); font-weight: 600; }
+  .vflow-branch .action-tag { color: var(--accent-green); }
+  .vflow-separator { display: flex; align-items: center; gap: 10px; margin: 4px 0 4px 48px; }
+  .vflow-separator span { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .vflow-separator::before, .vflow-separator::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* OVERLAY & MOBILE */
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+  .sidebar-overlay.open { display: block; }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0 !important; }
+    .topbar { padding-left: 12px; }
+    .content { padding: 20px 14px 50px; }
+    .phase-rule { grid-template-columns: 1fr; }
+    .phase-bullets { padding-left: 14px; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" onclick="toggleDesktopSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>TRADING PLAYBOOK</h1>
+    <div class="subtitle">Yaron's Methodology Hub</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-title">Overview</div>
+      <a class="nav-item active" data-page="home"><span class="nav-icon">&#9673;</span> Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Portfolio & Structure</div>
+      <a class="nav-item" data-page="investment-structure"><span class="nav-icon">&#9670;</span> Investment Structure<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="salary-reserve"><span class="nav-icon">&#9641;</span> Salary Reserve<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="portfolio-rebalance"><span class="nav-icon">&#8644;</span> Portfolio Rebalance<span class="nav-status status-soon">SOON</span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Trade Execution</div>
+      <a class="nav-item" data-page="opening-position"><span class="nav-icon">&#9654;</span> Opening Position<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="exit-strategy"><span class="nav-icon">&#9888;</span> Exit Strategy<span class="nav-status status-live">LIVE</span></a>
+      <a class="nav-item" data-page="extending-position"><span class="nav-icon">&#10138;</span> Extending Position<span class="nav-status status-soon">SOON</span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Analysis & Research</div>
+      <a class="nav-item" data-page="conviction-list"><span class="nav-icon">&#9733;</span> Conviction List<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="ftm"><span class="nav-icon">&#9684;</span> Follow the Money<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="performance-analysis"><span class="nav-icon">&#9636;</span> Performance Analysis<span class="nav-status status-soon">SOON</span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Risk & Crisis</div>
+      <a class="nav-item" data-page="risk-management"><span class="nav-icon">&#9711;</span> Risk Management<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="market-reversal"><span class="nav-icon">&#8635;</span> Market Reversal Prep<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="crisis-playbook"><span class="nav-icon">&#9888;</span> Crisis Playbook<span class="nav-status status-soon">SOON</span></a>
+      <a class="nav-item" data-page="meltup"><span class="nav-icon">&#9650;</span> Melt-Up Deployment<span class="nav-status status-soon">SOON</span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Operations</div>
+      <a class="nav-item" data-page="routines"><span class="nav-icon">&#9200;</span> Investment Routines<span class="nav-status status-soon">SOON</span></a>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="sidebar-toggle-desktop" onclick="toggleDesktopSidebar()" id="sidebarToggle" title="Toggle sidebar">&#9776;</button>
+    <div class="topbar-title"><strong>Trading Playbook</strong><span>/</span><span id="breadcrumb">Dashboard</span></div>
+    <div class="search-box">
+      <span style="color:var(--text-muted);font-size:13px;">&#128269;</span>
+      <input type="text" placeholder="Search methodology..." id="searchInput" onkeyup="handleSearch(event)">
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-home">
+      <div class="page-header">
+        <h1>Trading Playbook</h1>
+        <div class="page-meta">Your complete trading methodology &mdash; one source of truth</div>
+        <p class="page-description">A disciplined, rules-based system built from the principles of Minervini, Darvas, O'Neil, and Kullamagi. Every methodology is designed to be executed mathematically, without emotion.</p>
+      </div>
+      <div class="section">
+        <h2>Methodologies</h2>
+        <div class="home-grid">
+          <div class="home-card" onclick="navigateTo('exit-strategy')"><div class="home-card-icon">&#9888;</div><h3>Exit Strategy</h3><p>4-phase execution protocol for stop loss, trailing, and profit protection.</p><div class="card-status live">&#9679; LIVE</div></div>
+          <div class="home-card" onclick="navigateTo('investment-structure')"><div class="home-card-icon">&#9670;</div><h3>Investment Structure</h3><p>Portfolio allocation, asset classes, and structural guidelines.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('opening-position')"><div class="home-card-icon">&#9654;</div><h3>Opening Position</h3><p>Entry criteria, buy signals, and the checklist for valid entries.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('extending-position')"><div class="home-card-icon">&#10138;</div><h3>Extending Position</h3><p>When and how to add to winning positions safely.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('conviction-list')"><div class="home-card-icon">&#9733;</div><h3>Conviction List</h3><p>How to build, maintain, and act on your conviction watchlist.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('ftm')"><div class="home-card-icon">&#9684;</div><h3>Follow the Money</h3><p>Sector rotation matrix for identifying institutional money flow.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('risk-management')"><div class="home-card-icon">&#9711;</div><h3>Risk Management</h3><p>Portfolio-level risk controls and exposure management.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('market-reversal')"><div class="home-card-icon">&#8635;</div><h3>Market Reversal Prep</h3><p>Rules for detecting and responding to market regime changes.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('crisis-playbook')"><div class="home-card-icon">&#9888;</div><h3>Crisis Playbook</h3><p>Emergency protocols for crashes, black swans, and extreme volatility.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('salary-reserve')"><div class="home-card-icon">&#9641;</div><h3>Salary Reserve</h3><p>Cash reserve management and salary allocation rules.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('performance-analysis')"><div class="home-card-icon">&#9636;</div><h3>Performance Analysis</h3><p>Trade review, win/loss analysis, and performance tracking.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('routines')"><div class="home-card-icon">&#9200;</div><h3>Investment Routines</h3><p>Daily, weekly, and monthly checklists and review processes.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('portfolio-rebalance')"><div class="home-card-icon">&#8644;</div><h3>Portfolio Rebalance</h3><p>When and how to rebalance across asset classes and positions.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+          <div class="home-card" onclick="navigateTo('meltup')"><div class="home-card-icon">&#9650;</div><h3>Melt-Up Deployment</h3><p>Protocol for deploying capital during parabolic market phases.</p><div class="card-status coming">&#9675; Coming Soon</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXIT STRATEGY -->
+    <div class="page" id="page-exit-strategy">
+      <div class="page-header">
+        <h1>Exit Strategy</h1>
+        <div class="page-meta">Last updated April 21, 2026</div>
+        <p class="page-description">A disciplined, rules-based system to protect capital, secure profits, and let exceptional winners run their full course. This protocol eliminates emotional decisions by providing exact triggers, exact stop placement, and exact actions for every phase of a trade's lifecycle. Applies to mid-to-long term position trades.</p>
+        <div class="influences">
+          <span class="influence-tag">Minervini (SEPA)</span>
+          <span class="influence-tag">Darvas (Box Theory)</span>
+          <span class="influence-tag">O'Neil (CANSLIM)</span>
+          <span class="influence-tag">Kullamagi (Qullamaggie)</span>
+        </div>
+      </div>
+
+      <!-- CORE PRINCIPLES -->
+      <div class="section">
+        <div class="expand-collapse-bar">
+          <h2 style="margin-bottom:0!important;padding-bottom:0!important;border-bottom:none!important;">Core Principles</h2>
+          <div class="ec-links">
+            <a onclick="toggleAllPrinciples(true)">Expand All</a>
+            <a onclick="toggleAllPrinciples(false)">Collapse All</a>
+          </div>
+        </div>
+        <div class="principles-grid">
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">1</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Hard Max Loss: 6% from entry.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">
+                <strong>Target average loss: 4%.</strong> Aim to place stops around 4% from entry. 6% is the absolute ceiling &mdash; if a trade hits -6%, you are wrong, exit immediately.<br><br>
+                <strong>ATR buffer:</strong> Place stops at &lt;1&times; ATR(14) below your confluence reference to avoid stop hunts. Less buffer is better &mdash; use only what's needed to survive normal noise.<br><br>
+                <strong>How they connect:</strong> First, identify your confluence support level. Then subtract the ATR buffer. Finally, verify the total distance from entry does not exceed 6%. If it does, either wait for a tighter entry or pass on the trade entirely.
+              </div>
+            </div>
+          </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">2</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Max dollar risk per trade: $2,000 USD.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">
+                <strong>The unit of risk is $2K.</strong> This is the maximum dollar amount you accept to lose per trade unit (1 portion = ~$40K). A position can be multiple portions &mdash; 2 portions ($80K) allows $4K risk, 3 portions ($120K) allows $6K risk.<br><br>
+                <strong>How it relates to Principle 1:</strong> Principle 1 limits how far your stop can be from entry (max 6%). This principle caps the actual dollars at stake. Together they determine your position size &mdash; if the stop distance and dollar risk don't align, reduce shares until both rules are satisfied.
+              </div>
+            </div>
+          </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">3</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Portfolio risk cap: &le; 5% of total portfolio value.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">Sum the distance-to-stop across all open positions (in dollar terms). That total must not exceed 5% of your total portfolio value. This prevents a scenario where multiple correlated positions all hit their stops simultaneously and create an outsized portfolio drawdown.</div>
+            </div>
+          </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">4</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Confluence creates confidence.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">Never set a stop using a single reference. Require 2+ of: SMA, trend line, support zone, Fibonacci, AVP. A stop level backed by multiple confluences has a much higher probability of holding.</div>
+            </div>
+          </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">5</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Support zones are ranges, not numbers.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">Always use the lower bound of the zone as your reference. A support "level" at $48 is really a zone between $47.50 and $48.50 &mdash; your stop must clear the bottom of that zone to survive normal volatility.<br><br><strong>Validation:</strong> A support zone should be confirmed by as many price rejections (touches) as possible. 3+ rejections at minimum is preferable &mdash; the more touches, the stronger the zone.</div>
+            </div>
+          </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">6</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Let the stop be the exit.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">Never sell a rising stock. The stop loss is the only sell signal (except earnings protection and time stops). This is the Darvas principle: if the stock is going up, stay in. Let the trailing stop do the work of deciding when the trend is over.</div>
+            </div>
+          </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">7</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>Document every adjustment.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">Log every phase transition in TradingView notes / Trading Playbook / Excel with date, price, and reason. This builds your personal database of decisions and outcomes, making you a better trader over time.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4-PHASE PROTOCOL -->
+      <div class="section">
+        <h2>The 4-Phase Execution Protocol</h2>
+
+        <!-- Phase 01 -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number">01</span>
+            <span class="phase-title">Initial Entry</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value">Valid buy signal &mdash; breakout from base, Darvas box break, trend line bounce, or SMA150/50 reclaim.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Stop Loss</span><span class="phase-rule-value"><strong>Strongest confluence support minus &lt;1&times; ATR(14).</strong> Target stop distance ~4% from entry. Standard maximum 6%.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Volatile Exception</span><span class="phase-rule-value">For high-volatility stocks where ATR demands a wider stop (up to 8-10%), reduce position size proportionally so dollar risk per portion stays at $2K. The wider the stop, the smaller the position.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Position Size</span><span class="phase-rule-value">Allocate by portions (1 portion = ~1% of portfolio, ~$40K). Each portion carries <strong>$2K max risk</strong> regardless of stop distance. Conviction determines portions:</span></div>
+            <ul class="phase-bullets">
+              <li><strong>1 portion</strong> (~$40K at 6% stop) &rarr; $2K risk</li>
+              <li><strong>2 portions</strong> (~$80K at 6% stop) &rarr; $4K risk</li>
+              <li><strong>3 portions</strong> (~$120K at 6% stop) &rarr; $6K risk</li>
+              <li>If stop is 10% due to volatility, 1 portion shrinks to ~$20K to keep risk at $2K</li>
+            </ul>
+            <div class="phase-rule"><span class="phase-rule-label">Shares</span><span class="phase-rule-value">Allowed risk &divide; (Entry Price &minus; Stop Loss) = number of shares.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Reference</span><span class="phase-rule-value">Minimum 2 confluences required from: support/resistance zone, SMA (200/150/50/20), validated trend line (3+ touches), Fibonacci 38.2%/50%/61.8%, Anchored Volume Profile.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Define risk from the start. The dollar risk is fixed per portion ($2K) &mdash; the stop distance determines position size, not the other way around.</div>
+          </div>
+        </div>
+
+        <!-- Phase 02 -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number">02</span>
+            <span class="phase-title">Breakeven Shield</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value">Price has risen &ge; 1.5&times; ATR(14) above entry <strong>AND</strong> one of the following conditions is met:</span></div>
+            <ul class="phase-bullets">
+              <li><strong>Standard move:</strong> Price pulls back, forms a higher low, and prints at least 1 confirmation candle (green close above prior candle's high). Move stop to breakeven after this confirmation.</li>
+              <li><strong>Runaway move:</strong> Price reaches &ge; 3&times; ATR(14) above entry without pulling back. Move stop to breakeven immediately. When the stock eventually pulls back and forms a confirmed higher low, raise the stop to that higher low minus &lt;1&times; ATR(14).</li>
+            </ul>
+            <div class="phase-rule"><span class="phase-rule-label">Stop Loss</span><span class="phase-rule-value"><strong>Entry Price + 0.5% buffer.</strong> When a confirmed higher low forms above breakeven, raise to that higher low minus &lt;1&times; ATR(14).</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Key Condition</span><span class="phase-rule-value">Never move to breakeven on the first push up alone. You need either a pullback + higher low + 1 reversal confirmation candle, OR a runaway extension &ge; 3&times; ATR.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Reference</span><span class="phase-rule-value">Breakout level, higher low structure, swing low minus ATR buffer.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Eliminate the risk of a loss. After this phase, the trade is "free."</div>
+          </div>
+        </div>
+
+        <!-- Phase 03 -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number">03</span>
+            <span class="phase-title">Trend Capture</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value">Price has reclaimed and closed above SMA50 for at least <strong>3 consecutive trading days</strong>.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Stop Loss</span><span class="phase-rule-value"><strong>Trail below SMA50 minus 0.5&times; ATR(14).</strong> The stop only moves up, never down.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Key Condition</span><span class="phase-rule-value">Before trailing the SMA50, the stock must have pulled back to it and shown a reversal &mdash; at least 1 confirmation candle (green close above prior candle's high) after touching or approaching the SMA50. If the stock is riding well above SMA50 without any pullback, keep the Phase 02 stop until the first meaningful pullback to SMA50.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Confluence</span><span class="phase-rule-value">Before finalizing the stop level, verify the SMA50 reference aligns with at least one additional confluence: support zone, trend line, Fibonacci level, or AVP.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Scaling</span><span class="phase-rule-value">Hold full position. This is the core trend phase &mdash; let it work.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Reference</span><span class="phase-rule-value">SMA50, swing lows, trend line, confluence support.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Ride the core trend using SMA50 as the primary trailing reference. This phase applies while price is within 3&times; ATR(14) of the SMA50. When price extends beyond 3&times; ATR above SMA50, the stock is ultra-extended and transitions to Phase 04.</div>
+          </div>
+        </div>
+
+        <!-- Phase 04 -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number">04</span>
+            <span class="phase-title">Extended Move Defense</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value">Price is <strong>&gt;3&times; ATR(14) above SMA50</strong>. The stock is ultra-extended.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Action</span><span class="phase-rule-value"><strong>Immediately split the position 50/50</strong>, each half managed with its own trailing strategy:</span></div>
+
+            <h3 style="color:var(--accent-gold);font-size:13px;margin:14px 0 8px;letter-spacing:0.5px;text-transform:uppercase;">Aggressive Half (50%) &mdash; Tight Momentum Trail</h3>
+            <ul class="phase-bullets">
+              <li>If price is respecting <strong>SMA20</strong> &rarr; trail below SMA20 &minus; 0.5&times; ATR(14)</li>
+              <li>If price is extremely extended and respecting <strong>EMA9</strong> &rarr; trail below EMA9 &minus; 0.5&times; ATR(14)</li>
+              <li>If price is <strong>parabolic</strong> (extended even beyond EMA9) &rarr; trail below the most recent swing low minus 0.5&times; ATR(14). Update as each new higher swing low forms.</li>
+              <li>Before trailing an SMA/EMA, the stock must have pulled back to it and shown a reversal &mdash; at least 1 confirmation candle (green close above prior candle's high). If no pullback yet, park stop at the most recent swing low minus 0.5&times; ATR(14) and wait.</li>
+              <li><strong>When this stop is hit &rarr; sell this 50%.</strong> The anchor half remains unchanged.</li>
+            </ul>
+
+            <h3 style="color:var(--accent-gold);font-size:13px;margin:14px 0 8px;letter-spacing:0.5px;text-transform:uppercase;">Anchor Half (50%) &mdash; Chandelier Stop (3&times; ATR from Peak)</h3>
+            <ul class="phase-bullets">
+              <li>Place stop at <strong>3&times; ATR(14) below the most recent highest high</strong> (peak price).</li>
+              <li>This stop <strong>ratchets up only</strong>: as the stock makes new highs, recalculate from the new peak. The stop never moves down.</li>
+              <li>If the stock drops from its peak without making new highs, the stop stays at the level calculated from the last peak.</li>
+              <li>This half rides through consolidations and pullbacks that would trigger the aggressive trail.</li>
+              <li><strong>Transition back to Phase 03:</strong> When SMA50 catches up (price returns to within normal range of SMA50, i.e., &lt;3&times; ATR above it), this half transitions back to Phase 03 rules &mdash; trail below SMA50 &minus; 0.5&times; ATR(14).</li>
+            </ul>
+
+            <div class="phase-rule"><span class="phase-rule-label">Confluence</span><span class="phase-rule-value">Verify trailing references align with at least one additional confluence before finalizing stop levels.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Reference</span><span class="phase-rule-value">SMA20, EMA9, swing lows, chandelier exit from highest high, ATR distance from SMA50.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Extended moves are where the big money is made. The <strong>aggressive half</strong> captures the momentum break early with tight trailing (SMA20 &rarr; EMA9 &rarr; swing low). The <strong>anchor half</strong>, inspired by Darvas's patience and LeBeau's chandelier exit, gives the position room to breathe through consolidations while the SMA50 catches up &mdash; ensuring you stay in for the full trend.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANNEXES -->
+      <div class="section">
+        <h2>Annexes</h2>
+
+        <!-- Annex A -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number" style="background:var(--accent-blue);">A</span>
+            <span class="phase-title">Time Stop (Dead Money Rule)</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value"><strong>15 trading days (~3 calendar weeks)</strong> after entry with no meaningful price progress. "No progress" = price has not moved &gt; 1&times; ATR(14) above entry price.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Action</span><span class="phase-rule-value"><strong>Sell full position at market.</strong> Move ticker to watchlist for re-entry if it sets up again.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Capital has opportunity cost. Money sitting in a stock that isn't moving could be deployed into a better setup. If the stock hasn't responded within 3 weeks of your entry signal, the thesis is not playing out on your timeframe.</div>
+          </div>
+        </div>
+
+        <!-- Annex B -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number" style="background:var(--accent-blue);">B</span>
+            <span class="phase-title">Earnings Protection</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value">Earnings date approaching. <strong>Act 1 trading day before the report.</strong></span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Action</span><span class="phase-rule-value">Depends on unrealized gain:</span></div>
+            <ul class="phase-bullets">
+              <li><strong>Position at a loss or breakeven</strong> &rarr; Sell 100%. No exceptions.</li>
+              <li><strong>Small gain (under 10%)</strong> &rarr; Sell 100%. Cushion too thin to absorb a gap down.</li>
+              <li><strong>Moderate gain (10-20%)</strong> &rarr; Sell 50%. Tighten stop on remaining 50% to breakeven.</li>
+              <li><strong>Large gain (20%+, core position)</strong> &rarr; Hold. Tighten stop to below the pre-earnings swing low or nearest key SMA, whichever is closer.</li>
+            </ul>
+            <div class="phase-rule"><span class="phase-rule-label">Timing</span><span class="phase-rule-value">1 trading day before the report. Pay attention to whether earnings are BMO (before market open) or AMC (after market close) and adjust accordingly.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Post-Earnings Re-Entry</span><span class="phase-rule-value">If you sold and the stock gaps up, do NOT chase. Wait for a new setup &mdash; pullback, flag, or new base. Treat re-entry as a fresh Phase 01 trade.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Post-Earnings Exit</span><span class="phase-rule-value">If you held through and the stock gaps down but holds above your stop, reassess. If the stock reclaims pre-earnings levels within 3 trading days, resume previous phase trailing. If it doesn't, exit on the third day.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Earnings are binary events &mdash; stops cannot protect against overnight gaps. The profit cushion determines the action, not a prediction about the results.</div>
+          </div>
+        </div>
+
+        <!-- Annex C -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number" style="background:var(--accent-blue);">C</span>
+            <span class="phase-title">Market Regime Overlay</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Reference</span><span class="phase-rule-value">S&amp;P 500 vs. its SMA50, SMA150, and SMA200.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Regime Rules</span><span class="phase-rule-value"></span></div>
+            <ul class="phase-bullets">
+              <li><strong>Healthy</strong> (S&amp;P above SMA150, SMA150 rising) &rarr; Normal operations. Full exposure allowed. All phases apply. New entries permitted.</li>
+              <li><strong>Caution</strong> (S&amp;P closes below SMA50) &rarr; No new entries. Review all open positions. Tighten Phase 04 stops by one level. Phases 01-03 unchanged.</li>
+              <li><strong>Deteriorating</strong> (S&amp;P closes below SMA150) &rarr; No new entries. Reduce total exposure to max 50%. Sell weakest positions first (smallest cushion, earliest phase). Raise all stops one phase tighter.</li>
+              <li><strong>Bear</strong> (S&amp;P closes below SMA200) &rarr; Raise 75%+ to cash. Only hold positions in Phase 03 or 04 with large cushions (20%+). Everything else closed.</li>
+            </ul>
+            <div class="phase-rule"><span class="phase-rule-label">Recovery</span><span class="phase-rule-value">When S&amp;P reclaims SMA150 with 3 consecutive daily closes above it, begin rebuilding positions gradually. Start with 1-portion positions only until the trend re-establishes.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Individual stock stops don't operate in a vacuum. This overlay adjusts exposure and behavior across all open positions based on market health.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- END OF EXIT STRATEGY CONTENT -->
+    </div>
+
+    <!-- PLACEHOLDER PAGES -->
+    <div class="page" id="page-investment-structure"><div class="placeholder"><div class="placeholder-icon">&#9670;</div><h2>Investment Structure</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-salary-reserve"><div class="placeholder"><div class="placeholder-icon">&#9641;</div><h2>Salary Reserve</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-portfolio-rebalance"><div class="placeholder"><div class="placeholder-icon">&#8644;</div><h2>Portfolio Rebalance</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-opening-position"><div class="placeholder"><div class="placeholder-icon">&#9654;</div><h2>Opening Position</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-extending-position"><div class="placeholder"><div class="placeholder-icon">&#10138;</div><h2>Extending Position</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-conviction-list"><div class="placeholder"><div class="placeholder-icon">&#9733;</div><h2>Conviction List</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-ftm"><div class="placeholder"><div class="placeholder-icon">&#9684;</div><h2>Follow the Money</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-performance-analysis"><div class="placeholder"><div class="placeholder-icon">&#9636;</div><h2>Performance Analysis</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-risk-management"><div class="placeholder"><div class="placeholder-icon">&#9711;</div><h2>Risk Management</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-market-reversal"><div class="placeholder"><div class="placeholder-icon">&#8635;</div><h2>Market Reversal Preparations</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-crisis-playbook"><div class="placeholder"><div class="placeholder-icon">&#9888;</div><h2>Crisis Playbook</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-meltup"><div class="placeholder"><div class="placeholder-icon">&#9650;</div><h2>Melt-Up Deployment Protocol</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+    <div class="page" id="page-routines"><div class="placeholder"><div class="placeholder-icon">&#9200;</div><h2>Investment Routines</h2><p>Ready to be migrated. Upload your document to populate this page.</p></div></div>
+
+  </div>
+</div>
+
+<script>
+  const pageNames = {
+    'home':'Dashboard','exit-strategy':'Exit Strategy','investment-structure':'Investment Structure',
+    'salary-reserve':'Salary Reserve','portfolio-rebalance':'Portfolio Rebalance',
+    'opening-position':'Opening Position','extending-position':'Extending Position',
+    'conviction-list':'Conviction List','ftm':'Follow the Money',
+    'performance-analysis':'Performance Analysis','risk-management':'Risk Management',
+    'market-reversal':'Market Reversal Prep','crisis-playbook':'Crisis Playbook',
+    'meltup':'Melt-Up Deployment','routines':'Investment Routines'
+  };
+
+  function navigateTo(id) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const nav = document.querySelector(`.nav-item[data-page="${id}"]`);
+    const page = document.getElementById(`page-${id}`);
+    if (nav) nav.classList.add('active');
+    if (page) page.classList.add('active');
+    document.getElementById('breadcrumb').textContent = pageNames[id] || id;
+    window.scrollTo(0,0);
+    // close sidebar on mobile
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('open');
+      document.querySelector('.sidebar-overlay').classList.remove('open');
+    }
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => navigateTo(item.getAttribute('data-page')));
+  });
+
+  function togglePhase(h) { h.parentElement.classList.toggle('open'); }
+
+  function toggleAllPrinciples(expand) {
+    document.querySelectorAll('.principle').forEach(p => {
+      if (expand) p.classList.add('expanded'); else p.classList.remove('expanded');
+    });
+  }
+
+  function toggleDesktopSidebar() {
+    const sb = document.getElementById('sidebar');
+    sb.classList.toggle('collapsed');
+    if (window.innerWidth <= 768) {
+      sb.classList.toggle('open');
+      document.querySelector('.sidebar-overlay').classList.toggle('open');
+    }
+  }
+
+  function handleSearch(e) {
+    const q = e.target.value.toLowerCase().trim();
+    if (e.key === 'Enter' && q) {
+      const terms = {
+        'stop':'exit-strategy','loss':'exit-strategy','exit':'exit-strategy','trail':'exit-strategy','phase':'exit-strategy','profit':'exit-strategy',
+        'entry':'opening-position','buy':'opening-position','open':'opening-position','breakout':'opening-position',
+        'extend':'extending-position','add':'extending-position','pyramid':'extending-position',
+        'structure':'investment-structure','allocation':'investment-structure',
+        'conviction':'conviction-list','cvl':'conviction-list','watchlist':'conviction-list',
+        'ftm':'ftm','sector':'ftm','money':'ftm','rotation':'ftm',
+        'reversal':'market-reversal','regime':'market-reversal',
+        'crisis':'crisis-playbook','crash':'crisis-playbook',
+        'risk':'risk-management',
+        'salary':'salary-reserve','reserve':'salary-reserve','cash':'salary-reserve',
+        'performance':'performance-analysis','review':'performance-analysis','analysis':'performance-analysis',
+        'routine':'routines','daily':'routines','weekly':'routines','checklist':'routines',
+        'rebalance':'portfolio-rebalance','balance':'portfolio-rebalance',
+        'melt':'meltup','parabolic':'meltup','deploy':'meltup',
+      };
+      for (const [t,p] of Object.entries(terms)) { if (q.includes(t)) { navigateTo(p); e.target.value=''; return; } }
+    }
+  }
+</script>
+</body>
+</html>
