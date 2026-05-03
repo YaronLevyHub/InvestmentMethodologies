@@ -477,6 +477,16 @@
               <div class="principle-detail">Log every phase transition in TradingView notes / Trading Playbook / Excel with date, price, and reason. This builds your personal database of decisions and outcomes, making you a better trader over time.</div>
             </div>
           </div>
+          <div class="principle" onclick="this.classList.toggle('expanded')">
+            <span class="principle-num">8</span>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="principle-text"><strong>All SMAs are active references.</strong></span>
+                <span class="expand-icon">&#9660;</span>
+              </div>
+              <div class="principle-detail">When setting or adjusting a stop, consider <em>all</em> SMAs (20, 50, 150, 200) as potential confluence references &mdash; not just the one assigned to the current phase. A Phase 03 stop trails below SMA50, but if SMA150 or SMA200 happens to converge near the same level, that strengthens the stop. Conversely, if a key SMA sits just below your stop level, be aware it may act as a magnet. Always scan the full SMA stack for alignment or conflict before finalizing any stop.</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -641,6 +651,27 @@
             </ul>
             <div class="phase-rule"><span class="phase-rule-label">Recovery</span><span class="phase-rule-value">When S&amp;P reclaims SMA150 with 3 consecutive daily closes above it, begin rebuilding positions gradually. Start with 1-portion positions only until the trend re-establishes.</span></div>
             <div class="phase-note"><strong>Purpose:</strong> Individual stock stops don't operate in a vacuum. This overlay adjusts exposure and behavior across all open positions based on market health.</div>
+          </div>
+        </div>
+
+        <!-- Annex D -->
+        <div class="phase-card">
+          <div class="phase-header" onclick="togglePhase(this)">
+            <span class="phase-number" style="background:var(--accent-blue);">D</span>
+            <span class="phase-title">Industry Health Overlay</span>
+            <span class="phase-toggle">&#9660;</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-rule"><span class="phase-rule-label">Definition</span><span class="phase-rule-value">A <strong>lagging industry</strong> is one whose sector/industry ETF has been closing below its SMA50 for 5+ consecutive trading days AND the SMA50 slope is negative (today's SMA50 &lt; SMA50 from 5 days ago). Identified through the Follow the Money (FTM) sector analysis process.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Trigger</span><span class="phase-rule-value">A position's industry ETF meets the lagging definition above.</span></div>
+            <div class="phase-rule"><span class="phase-rule-label">Action</span><span class="phase-rule-value">Three-step response:</span></div>
+            <ul class="phase-bullets">
+              <li><strong>Step 1 &mdash; Trim 50%.</strong> Immediately sell half the position at market, regardless of the stock's individual performance.</li>
+              <li><strong>Step 2 &mdash; Tighten the remaining 50%.</strong> Move the stop on the remaining half up to SMA50 (of the stock) minus 0.5&times; ATR(14). This overrides the current phase stop if it was wider.</li>
+              <li><strong>Step 3 &mdash; Industry time stop (10 trading days).</strong> If after 10 trading days the industry ETF is still below its SMA50 with a negative slope, and the stock has not reclaimed relative strength vs. the industry, sell the remaining 50%. Capital should not stay trapped in a sinking sector.</li>
+            </ul>
+            <div class="phase-rule"><span class="phase-rule-label">Re-Entry</span><span class="phase-rule-value">If the industry ETF reclaims SMA50 with a positive slope and the stock sets up a fresh entry signal, treat it as a new Phase 01 trade. Do not automatically rebuild the old position.</span></div>
+            <div class="phase-note"><strong>Purpose:</strong> Even a strong stock will eventually be dragged down by a weak industry. This annex forces proactive risk reduction when the sector tide turns against you, rather than waiting for the individual stock's stop to be hit at a worse price. Based on the FTM sector rotation analysis.</div>
           </div>
         </div>
       </div>
